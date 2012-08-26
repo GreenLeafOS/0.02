@@ -18,13 +18,14 @@
 .code16
 _start:
 	/* 初始化 */
-	mov	%cs, %ax
-	mov	%ax, %ds
-	mov	%ax, %es
-	mov	%ax, %ss
-	mov	$0x7000,%sp
+	mov		%cs, %ax
+	mov		%ax, %ds
+	mov		%ax, %es
+	mov		%ax, %ss
+	mov		$0x7000,%sp
 
-
+	/* 输出字符串 */
+	call	disp_str
 
 	/* 读入内核 */
 	call	read_kernel
@@ -33,8 +34,6 @@ _start:
 	call	get_mem_info
 	/* 获取CMOS */
 	call	get_cmos
-	/* 输出字符串 */
-	call	disp_str
 
 	/* 跳入保护模式 */
 	jmp		jmp_pm
@@ -47,10 +46,15 @@ read_kernel:
 	movw	$Kernel_FileBaseAddr, (lba_buf+2)
 	movw	$Kernel_FileOffsetAddr, (lba_buf)
 
-	movw	(kernel_start), %ax
+	movw	(kernel_start),%ax			/* 读取kernel偏移低字节 */
+	movw	(start_sector),%bx			/* 读取起始扇区低字节 */
+	addw	%bx,%ax						/* kernel在分区的偏移加分区引导记录基地址(低字节相加) */
 	movw	%ax,(lba_start)
-	movw	(kernel_start+2), %ax
-	movw	%ax,(lba_start+2)
+
+	movw	(kernel_start+2),%ax		/* 读取kernel偏移高字节 */
+	movw	(start_sector+2),%bx		/* 读取起始扇区高字节 */
+	adcw	%bx,%ax						/* 高字节带进位相加 */
+	movw	%ax,(lba_start+2)			/* kernel在分区的偏移加分区引导记录基地址(高字节相加，带进位) */
 
 	movw	(kernel_size), %ax
 	movw	%ax,(lba_count)
@@ -68,7 +72,7 @@ read_disk:
 	mov		$lba,%si			/* ds:si指向LBA数据包 */
 
 	mov		$0x42, %ah			/* 中断功能号：扩展读扇区 */
-	mov		(boot_drive), %dl	/* 驱动器 */
+	mov		$0x80, %dl			/* 驱动器 */
 	int		$0x13				/* 调用中断 */
 	jc		read_disk
 

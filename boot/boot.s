@@ -11,105 +11,208 @@
 
 .section .text
 .global _start
-.global read_loader
-/************************************************************************/
-/*                          主函数
-/*                          start
-/************************************************************************/
+
+/*
+ * start
+ */
 .code16
 _start:
-	/* 保存启动驱动器 */
-	movb %dl,(boot_drive)
-	/* 初始化段寄存器及堆栈指针 */
-	mov	%cs, %ax
-	mov %ax, %ds
-	mov %ax, %ss
-	mov $stack_top, %sp
-	/* 显存段es */
-	mov $0xb800, %bx
-	mov %bx, %es
+	ljmp	$0,$real_start
+
+
+/*
+ * 起始函数
+ * 由start长跳入
+ */
+real_start:
+	/* 初始化段寄存器 */
+	mov		%cs,%ax
+	mov		%ax,%ds
+	mov		%ax,%ss
+	mov		$0x7c00,%sp
+
+	mov 	$0xb800,%bx
+	mov 	%bx, %gs
+
+	movb 	%dl,%ds:(boot_drive)
 
 	/* 调用cls清屏 */
-	call cls
-	/* 调用disp_str显示字符串 */
-	call disp_str
-	/* 读取loader */
-	call read_loader
+	call 	cls
 
-	ljmp $Loader_BaseAddr,$Loader_OffsetAddr
+	/* 调用disp_str显示字符串 */
+	mov		$boot_msg,%si
+	mov		$0,%di
+	call	disp_str
+
+	/* 读取loader */
+	call	check_disk
+	call 	read_loader
+
+	ljmp 	$Loader_BaseAddr,$Loader_OffsetAddr
 
 /************************************************************************/
 /*                      	清屏
 /*                          cls
 /************************************************************************/
 cls:
-	mov	$0, %ax		/* 空字符 */
-	mov	$2000, %cx	/* 循环2000次 */
-	xor	%di, %di	/* 对di清0 */
+	mov		$1000, %ecx	/* 循环2000次 */
 _cls_loop:
-	mov	%ax, %es:(%di)	/* 写入 */
-	add	$2, %di			/* 指向下一个空间 */
-	dec	%cx				/* 循环计数器减1 */
-	test %cx, %cx		/* 测试是否为0 */
-	jnz	_cls_loop
-_cls_end:
+	movl	$0, %gs:(%di)	/* 写入 */
+	add		$4, %di			/* 指向下一个空间 */
+	loop	_cls_loop
+
 	ret
 /************************************************************************/
 /*                      在屏幕上显示字符串
 /*                         disp_str
 /************************************************************************/
 disp_str:
-	mov		$boot_msg, %si	/* 字符串地址 */
 	mov		$0x0f, %ah		/* 黑底白字 */
-	xor		%di, %di		/* 对di清0 */
 _disp_str_loop:
 	lodsb					/* (C)al=*si;si++; */
 	test	%al, %al		/* 测试是否为0 */
 	jz		_disp_str_end	/* 为0则结束 */
-	mov		%ax, %es:(%di)	/* 写入 */
+	mov		%ax, %gs:(%di)	/* 写入 */
 	add		$2,  %di		/* di+2*/
 	jmp		_disp_str_loop	/* 进入下一次循环 */
 _disp_str_end:
 	ret
+/************************************************************************/
+/*                      检测磁盘模式
+/*                     	check_disk
+/************************************************************************/
+check_disk:
+	/* 验证是否支持LBA */
+	movb	$0x41, %ah
+	movw	$0x55aa, %bx
+	int		$0x13
+
+	/* 如果不支持，就使用chs */
+	jc		chs_mode
+	cmpw	$0xaa55, %bx
+	jne		chs_mode
+
+	andw	$1, %cx
+	jz		chs_mode
+#	jmp		chs_mode
+
+/* 初始化lba模式 */
+lba_mode:
+	movw	$read_disk_lba,(read_disk_fun)	/* 保存调用函数地址 */
+	ret
+
+/* 初始化chs模式 */
+chs_mode:
+	movw	$read_disk_chs,(read_disk_fun)	/* 保存调用函数地址 */
+
+	movb	$8, %ah
+	int		$0x13				/* 获取驱动器参数 */
+
+	movzbl	%dh, %eax
+	incw	%ax
+	movl	%eax,(heads)		/* 保存磁头数 */
+
+	movzbw	%cl, %dx
+	shlw	$2, %dx
+	movb	%ch, %al
+	movb	%dh, %ah
+	incw	%ax
+	movw	%ax, (cylinders)	/* 保存柱面数 */
+
+	movzbw	%dl, %ax
+	shrb	$2, %al
+	movl	%eax, (sectors)		/* 保存扇面数 */
+
+	ret
+/************************************************************************/
+/*                      读取磁盘
+/*                     read_disk
+/* 入口参数：
+/*		lba		lba绝对扇区地址	eax
+/*		count	扇区数			cx
+/*		seg		段				bx
+/*		offset	目标地址			di
+/************************************************************************/
+.macro read_disk lba,count,seg,offset
+	movl	\lba,%eax
+	movw	\count,%cx
+	movw	\seg,%bx
+	movw	\offset,%di
+	call	*(read_disk_fun)
+.endm
+
+/* lba模式 */
+read_disk_lba:
+	pushl	%eax
+	pushl	%edx
+
+	movw	$disk_address_packet,%si
+	movb	$0x10,	0(%si)		/* 包大小，默认0x10 */
+	movw	%cx,	2(%si)		/* 读取块数 */
+	movw	%di,	4(%si)		/* 偏移 */
+	movw	%bx,	6(%si)		/* 段 */
+	movl	%eax,	8(%si)		/* lba绝对扇区地址 */
+
+	movb	$0x42, %ah			/* 功能号 */
+	mov		%ds:(boot_drive), %dl			/* 驱动器 */
+	int		$0x13
+
+	/* 如果出错，就尝试chs模式  */
+	popl	%edx
+	popl	%eax
+	jc		read_disk_chs
+
+	ret
 
 
+/* chs模式 */
+read_disk_chs:
+	pushl	%ebp
+	movl	%esp,%ebp
+	subl	$24,%esp
+
+	movl	%eax,-16(%ebp)	/* int lba */
+
+	movb	%cl,%al			/* 扇区数 */
+	movb	$0x02, %ah		/* 功能号 */
+	movl	%eax,-20(%ebp)	/* 保存最终eax */
+
+	movw	%bx, %es		/* 缓冲区段 */
+	movw	%di, %bx		/* 缓冲区偏移 */
+
+	movl	-16(%ebp),%eax	/* 读取lba绝对扇区号 */
+	xorl	%edx, %edx
+	divl	(sectors)		/* 绝对扇区号除以每柱面扇区数 */
+	movb	%dl, %cl		/* 商为柱面号，余数为起始扇区号 */
+	incb	%cl				/* chs的起始扇区参数必须大于0 */
+
+	xorw	%dx, %dx
+	divl	(heads)			/* 柱面号除以磁头数 */
+	movb	%al, %ch		/* 商是柱面号,余数为磁头号 */
+
+	xorb	%al, %al		/* 柱面号的高字节 */
+	shrw	$2, %ax
+	orb		%al, %cl
+
+	movb	%dl, %dh		/* 磁头号 */
+
+	movl	-20(%ebp),%eax	/* 恢复最终eax */
+
+	movb	%ds:(boot_drive),%dl
+	int		$0x13
+
+	movl	%ebp,%esp
+	popl	%ebp
+	ret
 /************************************************************************/
 /*                      读取loader
 /*                     read_loader
 /************************************************************************/
 read_loader:
-	call	read_mbr		/* 读取文件系统所在分区 */
+	/* 读取mbr 										*/
+	/*			lba		count	seg		offset 		*/
+	read_disk	$0,		$1,		$0,		$0x600
 
-	/* 准备参数 */
-	movw	$Loader_BaseAddr,(lba_buf+2)	/* 段基址 */
-	movw	$Loader_OffsetAddr,(lba_buf)	/* 偏移量 */
-
-	movw	(loader_start),%ax
-	movw	%ax,(lba_start)
-	movw	(loader_start+2),%ax
-	movw	%ax,(lba_start+2)
-
-	movw	(loader_size),%ax
-	movw	%ax,(lba_count)
-
-	/* 读取loader */
-	call	read_disk
-	ret
-
-/************************************************************************/
-/*                      读取MBR
-/*                     read_mbr
-/************************************************************************/
-read_mbr:
-
-	/* 准备参数 */
-	movw	$0,(lba_buf+2)
-	movw 	$0x600,(lba_buf)	/* 读入MBR到0x600 */
-	movb	$0,(lba_start)		/* 起始扇区 */
-	movb	$1,(lba_count)		/* 扇区数 */
-
-	/* 读取mbr */
-	call	read_disk
 
 /*
  * 查找Green分区
@@ -138,64 +241,52 @@ _read_mbr_loop:
 
 
 _read_mbr_fs:
-	/* 写入数据包,倒字节排序 */
-	mov		8(%bx),%ch
-	mov		%ch,(lba_start + 0)
-	mov		9(%bx),%ch
-	mov		%ch,(lba_start + 1)
-	mov		10(%bx),%ch
-	mov		%ch,(lba_start + 2)
-	mov		11(%bx),%ch
-	mov		%ch,(lba_start + 3)
-
-	/* 使用和代码段一样的附加段（兼容多系统） */
-	mov		%cs,%ax
-	movw	%ax,(lba_buf+2)			/* 保存段 */
-	movw	$fs_head,(lba_buf)		/* 保存偏移fs_head,fs.s开头，把硬盘上的实际数据填充到符号表
-									因为BIOS只读取1个扇区，而此程序要使用2个扇区，所以后一个扇区
-									需要自己读取 */
+	movl	8(%bx),%eax			/* 写入数据包,倒字节排序 */
+#	bswap	%eax
+	movl	%eax,(start_sector)
 _read_mbr_end:
-	call	read_disk
-	ret
-/************************************************************************/
-/*                      读取磁盘
-/*                     read_disk
-/************************************************************************/
-read_disk:
-	/* 调用中断 */
-	mov		$0,%ax
-	mov		%ax,%ds
-	mov		$lba,%si			/* ds:si指向LBA数据包 */
 
-	mov		$0x42, %ah			/* 中断功能号：扩展读扇区 */
-	mov		(boot_drive), %dl	/* 驱动器 */
-	int		$0x13				/* 调用中断 */
-	jc		read_disk
+	/*			lba		count	seg		offset 		*/
+	read_disk 	%eax,	$1,		%cs,	$fs_head
+
+_read_loader_read:
+	movl	(loader_start),%eax			/* 读取loader偏移 */
+	movl	(start_sector),%ebx			/* 读取起始扇区 */
+	addl	%ebx,%eax					/* loader在分区的偏移加分区引导记录基地址 */
+
+	/* 读取loader 														*/
+	/*			lba		count			seg					offset 		*/
+	read_disk	%eax,	(loader_size),	$Loader_BaseAddr,	$Loader_OffsetAddr
 
 	ret
 /************************************************************************/
 /*                      	数据区
 /*                          data
 /************************************************************************/
-boot_msg:
-	.ascii	"Booting..."
-	.byte	0
+boot_msg:		.asciz	"Booting..."
 
-lba:
-	lba_size:
-		.byte	16		/* 数据包大小 */
-		.byte	0
-	lba_count:
-		.word	1		/* 扇区数 */
-	lba_buf:
-		.word	0
-		.word	0		/* 段：偏移 */
-	lba_start:
-		.quad	0		/* 绝对扇区 */
+/* 读取磁盘函数的地址 */
+read_disk_fun:
+	.long		0
+
+/* lba模式和chs使用同一块缓冲区，因为不可能冲突 */
+disk_address_packet:
+sectors:
+	.long	0
+heads:
+	.long	0
+cylinders:
+	.word	0
+sector_start:
+	.byte	0
+head_start:
+	.byte	0
+cylinder_start:
+	.word	0
+	.word	0
 
 free_space:
 	.org	0x1BE
-stack_top:
 hd_partition_table:
 	.byte	0x80	/* 可引导 */
 	.byte	0x00	/* 起始磁头 */
@@ -203,12 +294,12 @@ hd_partition_table:
 	.byte	0x00	/* 起始柱面 */
 
 	.byte	0xE0	/* Green文件系统标志 */
-	.byte	0x11	/* 结束磁头号 */
-	.byte	0x2D	/* 结束扇区 */
-	.byte	0x01	/* 结束柱面 */
+	.byte	0x0A	/* 结束磁头号 */
+	.byte	0x1F	/* 结束扇区 */
+	.byte	0x00	/* 结束柱面 */
 
 	.byte	0x01,0x00,0x00,0x00		/* 起始扇区LBA,从1开始，高位在低地址 */
-	.byte	0x3F,0x0B,0x00,0x00		/* 扇区数目,高位在低地址 */
+	.byte	0xE0,0x01,0x00,0x00		/* 扇区数目,高位在低地址 */
 
 
 	.quad	0,0

@@ -13,11 +13,11 @@ ld_flags			=	-s -Ttext $(entrypoint) -section-start bios=$(biosinfo) -Map bin/ke
 image		= 	bin/kernel.img
 #------------目标-----------
 boot		=	bin/boot.bin bin/loader.bin
-sub_dir		=	kernel
-# arch micro-kernel lib
+sub_dir		=	arch micro-kernel lib
+# kernel
 objs 		:= $(foreach path,$(sub_dir),bin/$(path).o)
 
-.PHONY : clean all finalclean
+.PHONY : clean all finalclean image
 
 # 编译
 all : finalclean $(image) $(objs) $(boot) 
@@ -26,12 +26,15 @@ all : finalclean $(image) $(objs) $(boot)
 	@$(ld) $(ld_flags) $(objs) -o bin/kernel.bin
 	
 	@echo "Writing image..."
-	@dd conv=notrunc of=bin/kernel.img bs=512 count=1 if=bin/boot.bin 
+#	@dd conv=notrunc of=bin/kernel.img bs=512 count=1 if=bin/mbrboot.bin 
+	@dd conv=notrunc of=bin/kernel.img bs=512 count=1 if=bin/boot.bin
 	@dd conv=notrunc of=bin/kernel.img bs=512 count=1 if=bin/fs.bin seek=1
 	@dd conv=notrunc of=bin/kernel.img bs=512 count=2 if=bin/loader.bin seek=2
 	@dd conv=notrunc of=bin/kernel.img bs=512 count=69 if=bin/kernel.bin seek=4
 	
-
+image: all
+	@dd if=bin/kernel.img bs=4096 count=500 of=/dev/sdb
+	
 # 循环调用子目录中的makefile	
 $(objs):bin/%.o : %
 	make -s -C $<

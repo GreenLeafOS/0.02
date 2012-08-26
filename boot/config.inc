@@ -2,7 +2,8 @@
  * boot∫Õloaderµƒ≈‰÷√
 */
 
-boot_drive = 0x500
+boot_drive 		= 0x1000
+start_sector	= 0x1004
 
 Kernel_FileBaseAddr		=	0x1000
 Kernel_FileOffsetAddr	=	0
