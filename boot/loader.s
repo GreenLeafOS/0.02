@@ -2,6 +2,14 @@
  *                     	 loader.s
  *						引导程序代码
  ===============================================================*/
+ .code16
+.global	_start
+.global	_memcpy_end
+_start:
+	jmp		real_start
+
+
+/* 配置 */
 .include "config.inc"
 .include "protect.inc"
 
@@ -9,14 +17,15 @@
 .section fs,"",@nobits
 .include "fs.s"
 
+/* 磁盘读取 */
 .section .text
-.global	_start
+.include "disk.inc"
 /************************************************************************/
 /*						入口函数
-/*						start
+/*						real_start
 /************************************************************************/
 .code16
-_start:
+real_start:
 	/* 初始化 */
 	mov		%cs, %ax
 	mov		%ax, %ds
@@ -28,6 +37,7 @@ _start:
 	call	disp_str
 
 	/* 读入内核 */
+	call	check_disk
 	call	read_kernel
 
 	/* 获取内存数量 */
@@ -37,46 +47,7 @@ _start:
 
 	/* 跳入保护模式 */
 	jmp		jmp_pm
-/************************************************************************/
-/*						读入内核
-/*					  read_kernel
-/*	读入 config中的指定地点
-/************************************************************************/
-read_kernel:
-	movw	$Kernel_FileBaseAddr, (lba_buf+2)
-	movw	$Kernel_FileOffsetAddr, (lba_buf)
 
-	movw	(kernel_start),%ax			/* 读取kernel偏移低字节 */
-	movw	(start_sector),%bx			/* 读取起始扇区低字节 */
-	addw	%bx,%ax						/* kernel在分区的偏移加分区引导记录基地址(低字节相加) */
-	movw	%ax,(lba_start)
-
-	movw	(kernel_start+2),%ax		/* 读取kernel偏移高字节 */
-	movw	(start_sector+2),%bx		/* 读取起始扇区高字节 */
-	adcw	%bx,%ax						/* 高字节带进位相加 */
-	movw	%ax,(lba_start+2)			/* kernel在分区的偏移加分区引导记录基地址(高字节相加，带进位) */
-
-	movw	(kernel_size), %ax
-	movw	%ax,(lba_count)
-
-	call 	read_disk
-	ret
-/************************************************************************/
-/*                      读取磁盘
-/*                     read_disk
-/************************************************************************/
-read_disk:
-	/* 调用中断 */
-	mov		$0,%ax
-	mov		%ax,%ds
-	mov		$lba,%si			/* ds:si指向LBA数据包 */
-
-	mov		$0x42, %ah			/* 中断功能号：扩展读扇区 */
-	mov		$0x80, %dl			/* 驱动器 */
-	int		$0x13				/* 调用中断 */
-	jc		read_disk
-
-	ret
 /************************************************************************/
 /*						获取内存信息
 /*					    get_mem_info
@@ -132,39 +103,32 @@ _get_coms_loop:
 /*                         disp_str
 /************************************************************************/
 disp_str:
-	mov		$0xb800,%ax
-	mov		%ax,%es
-
-	mov		$loader_msg, %si	/* 字符串地址 */
+	mov		$loader_msg,%si
+	mov		$160,%di
 	mov		$0x0f, %ah		/* 黑底白字 */
-	mov		$160, %di		/* 对di清0 */
 _disp_str_loop:
 	lodsb					/* (C)al=*si;si++; */
 	test	%al, %al		/* 测试是否为0 */
 	jz		_disp_str_end	/* 为0则结束 */
-	mov		%ax, %es:(%di)	/* 写入 */
+	mov		%ax, %gs:(%di)	/* 写入 */
 	add		$2,  %di		/* di+2*/
 	jmp		_disp_str_loop	/* 进入下一次循环 */
 _disp_str_end:
 	ret
 loader_msg:
-	.ascii	"Loading..."
-	.byte	0
+	.asciz	"Load the kernel."
 /************************************************************************/
-/*                      	数据区
-/*                          data
+/*                      读取kernel
+/*                     read_kernel
 /************************************************************************/
-lba:
-	lba_size:
-		.byte	16		/* 数据包大小 */
-		.byte	0
-	lba_count:
-		.word	1		/* 扇区数 */
-	lba_buf:
-		.word	0
-		.word	0		/* 段：偏移 */
-	lba_start:
-		.quad	0		/* 绝对扇区 */
+read_kernel:
+	movl	(start_sector),%eax
+	movl	(kernel_start),%ebx
+	addl	%ebx,%eax
+
+	/*			lba		count			seg						offset 				*/
+	read_disk	%eax,	(kernel_size),	$Kernel_FileBaseAddr,	$Kernel_FileOffsetAddr
+	ret
 /************************************************************************/
 /*                      GDT段描述符表
 /*                         gdt
@@ -193,6 +157,7 @@ sel_video		=	gdt_desc_video	- gdt + SA_RPL3
 /*                       jmp_pm
 /************************************************************************/
 jmp_pm:
+
 	/* 加载gdt */
 	lgdt	(gdt_ptr)
 	/* 关中断 */
@@ -210,10 +175,11 @@ jmp_pm:
 
 /* 真正进入保护模式 */
 jmp32:
-	/* AT&T汇编格式  ljmp $sel_code,pm_start */
+	/* AT&T汇编格式  ljmp $sel_code,$pm_start */
 	/* Intel汇编格式 jmp far dword sel_code:pm_start */
 	/* 机器代码 */
-	.quad 0x000800008200ea66
+	ljmp $sel_code,$pm_start
+	#.quad 0x000800008200ea66
 /************************************************************************/
 /*                 		   保护模式初始化
 /*                         	pm_start
@@ -230,6 +196,31 @@ pm_start:
 
 	mov 	$sel_video, %bx
 	mov 	%bx, %gs			/* 显存段gs */
+
+	call	disp_str32
+
+	jmp		goto_kernel
+/************************************************************************/
+/*                      在屏幕上显示字符串
+/*                         disp_str
+/************************************************************************/
+disp_str32:
+	mov		$loader_msg32,%si
+	mov		$320,%di
+	mov		$0x0f, %ah		/* 黑底白字 */
+_disp_str_loop32:
+	mov		(%si),%al
+	inc		%si
+	test	%al, %al		/* 测试是否为0 */
+	jz		_disp_str_end32	/* 为0则结束 */
+	mov		%ax, %gs:(%di)	/* 写入 */
+	add		$2,  %di		/* di+2*/
+	jmp		_disp_str_loop32	/* 进入下一次循环 */
+_disp_str_end32:
+	ret
+loader_msg32:
+	.asciz	"In protected mode now!"
+
 /************************************************************************/
 /*                      初始化并进入内核(跳入保护模式后)
 /*                        goto_kernel
@@ -238,9 +229,9 @@ Elf_phnum		=	Kernel_FileAddr + 0x2c
 Elf_phoff		=	Kernel_FileAddr + 0x1c
 
 goto_kernel:
-	mov		(Elf_phnum),%ecx			/* ecx:Program header table 中条目数 */
+	movl	%ds:(Elf_phnum),%ecx		/* ecx:Program header table 中条目数 */
 	movzx	%cx,%ecx
-	movl	(Elf_phoff),%esi			/* esi:Program header table 的偏移量 */
+	movl	%ds:(Elf_phoff),%esi		/* esi:Program header table 的偏移量 */
 	addl	$Kernel_FileAddr,%esi		/* 加上基址，esi指向 Program header table */
 _goto_kernel_begin:
 	movl	0(%esi),%eax				/* eax:p_type 段类型 */
@@ -255,7 +246,7 @@ _goto_kernel_begin:
 	addl	$12,%esp					/* 清理堆栈 */
 _goto_kernel_noaction:
 	addl	$0x20,%esi					/* esi指向下一个条目 */
-	dec		%ecx						/* 条目计数减1 */
+	decl	%ecx						/* 条目计数减1 */
 	jnz		_goto_kernel_begin
 _goto_kernel:
 	ljmp	$sel_code,$Kernel_ImgAddr
@@ -264,38 +255,37 @@ _goto_kernel:
 /*                        memcpy
 /* void* memcpy(void* es:pDest, void* ds:pSrc, int iSize);
 /************************************************************************/
-.code32
 memcpy:
-	push	%ebp
-	mov		%esp,%ebp
+	pushl	%ebp
+	movl	%esp,%ebp
 
-	push	%esi
-	push	%edi
-	push	%ecx
+	pushl	%esi
+	pushl	%edi
+	pushl	%ecx
 
-	mov		8(%ebp),%edi	/* Destination */
-	mov		12(%ebp),%esi	/* Source */
-	mov		16(%ebp),%ecx	/* Counter */
+	movl	8(%ebp),%edi	/* Destination */
+	movl	12(%ebp),%esi	/* Source */
+	movl	16(%ebp),%ecx	/* Counter */
 _memcpy_copy:
-	cmp		$0, %ecx 		/* 判断计数器 */
+	cmpl	$0, %ecx 		/* 判断计数器 */
 	jz		_memcpy_end		/* 计数器为零时跳出 */
 
-	mov		%ds:(%esi),%al	/* 读取 */
-	inc		%esi
+	movb	%ds:(%esi),%al	/* 读取 */
+	incl	%esi
 
-	mov		%al,%es:(%edi)	/* 写入 */
-	inc		%edi
+	movb	%al,%es:(%edi)	/* 写入 */
+	incl	%edi
 
-	dec		%ecx			/* 计数器减一 */
+	decl	%ecx			/* 计数器减一 */
 	jmp		_memcpy_copy	/* 循环 */
 _memcpy_end:
-	mov		8(%ebp),%eax 	/* 返回值 */
+	movl	8(%ebp),%eax 	/* 返回值 */
 
-	pop		%ecx
-	pop		%edi
-	pop		%esi
-	mov		%ebp,%esp
-	pop		%ebp
+	popl	%ecx
+	popl	%edi
+	popl	%esi
+	movl	%ebp,%esp
+	popl	%ebp
 
 	ret						/* 函数结束，返回 */
 

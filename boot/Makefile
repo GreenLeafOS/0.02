@@ -5,11 +5,9 @@
 .PHONY: all clean finalclean
 
 all: finalclean
-	as mbrboot.s -o mbrboot.o
 	as boot.s -o boot.o
 	as loader.s -o loader.o
 	as fs.s -o fs.o
-	ld mbrboot.o -Ttext 0x7c00 --oformat=binary -o ../bin/mbrboot.bin		
 	ld boot.o 	-Ttext 0x7c00 -section-start fs=0x800 --oformat=binary -o ../bin/boot.bin
 	ld loader.o -Ttext 0x8000 -section-start fs=0x800 --oformat=binary -o ../bin/loader.bin
 	ld fs.o --oformat=binary -o ../bin/fs.bin

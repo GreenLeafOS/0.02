@@ -6,9 +6,9 @@ entrypoint			= 0x100000
 biosinfo			= 0x30000
 #------------连接-----------
 ld					=	ld
-ld_flags			=	-s -Ttext $(entrypoint) -section-start bios=$(biosinfo) -Map bin/kernel.map
+ld_flags			=	-T link.lds -Map bin/kernel.map -s
 # -T link.lds -Map bin/kernel.map -s
-#-s -Ttext $(entrypoint) -section-start memory=$(memoryinfo) -Map bin/kernel.map
+# -s -Ttext $(entrypoint) -section-start memory=$(memoryinfo) -Map bin/kernel.map
 #---------最终目标----------
 image		= 	bin/kernel.img
 #------------目标-----------
