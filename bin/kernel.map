@@ -1,53 +1,4 @@
 
-Allocating common symbols
-Common symbol       size              file
-
-mod_time_id         0x2               bin/micro-kernel.o
-mod_hd_id           0x2               bin/micro-kernel.o
-gdt_table           0x100             bin/arch.o
-handle_table        0xc00             bin/micro-kernel.o
-idt_ptr             0x6               bin/arch.o
-kernel_reenter      0x4               bin/micro-kernel.o
-handle_ret_addr     0x4               bin/micro-kernel.o
-zone                0x90              bin/micro-kernel.o
-thread_realtime     0x4               bin/micro-kernel.o
-mod_addr_room_base  0x1000            bin/micro-kernel.o
-mod_addr_room_id    0x2               bin/micro-kernel.o
-thread_table        0x80              bin/micro-kernel.o
-mod_time_sysclock   0x8               bin/micro-kernel.o
-tss                 0x6c              bin/arch.o
-thread_queue_ready  0x8               bin/micro-kernel.o
-mod_public_msg_id   0x2               bin/micro-kernel.o
-mod_addr_block_base
-                    0x6000            bin/micro-kernel.o
-thread_resched_lock
-                    0x4               bin/micro-kernel.o
-thread_queue_sleep  0x8               bin/micro-kernel.o
-handle_err_code     0x4               bin/micro-kernel.o
-kernel_stack_top    0x4               bin/micro-kernel.o
-g_page_dir          0x1000            bin/micro-kernel.o
-thread_run          0x4               bin/micro-kernel.o
-mod_addr_block_hash
-                    0x1c              bin/micro-kernel.o
-gdt_ptr             0x6               bin/arch.o
-thread_run_stack_top
-                    0x4               bin/micro-kernel.o
-test_id             0x4               bin/micro-kernel.o
-mod_addr_room_hash  0x1c              bin/micro-kernel.o
-tss_sel             0x2               bin/arch.o
-ldt_ptr             0x6               bin/arch.o
-idt_table           0x800             bin/arch.o
-ldt_table           0x40              bin/arch.o
-
-Discarded input sections
-
- .eh_frame      0x0000000000000000      0x4c8 bin/arch.o
- .comment       0x0000000000000000      0x158 bin/arch.o
- .eh_frame      0x0000000000000000      0x968 bin/micro-kernel.o
- .comment       0x0000000000000000      0x1d9 bin/micro-kernel.o
- .eh_frame      0x0000000000000000      0x3e4 bin/lib.o
- .comment       0x0000000000000000       0xd7 bin/lib.o
-
 Memory Configuration
 
 Name             Origin             Length             Attributes
@@ -56,227 +7,32 @@ Name             Origin             Length             Attributes
 Linker script and memory map
 
 
-.text           0x0000000000100000     0x40a7
+.text           0x0000000000100000        0x5
                 0x0000000000100000                _text = ABSOLUTE (.)
  *(.text)
- .text          0x0000000000100000      0x95c bin/arch.o
+ .text          0x0000000000100000        0x5 bin/kernel.o
                 0x0000000000100000                _start
-                0x0000000000100070                print
-                0x00000000001000b0                desc_init
-                0x0000000000100138                desc_create
-                0x000000000010017b                gate_init
-                0x00000000001001de                gate_create
-                0x0000000000100230                gdt_add
-                0x000000000010028a                gdt_remove
-                0x00000000001002ad                gdt_set
-                0x00000000001002de                gdt_get
-                0x0000000000100304                gdt_load
-                0x000000000010033c                ldt_init
-                0x0000000000100341                ldt_add
-                0x000000000010039b                ldt_remove
-                0x00000000001003be                ldt_set
-                0x00000000001003ef                ldt_get
-                0x0000000000100415                ldt_load
-                0x000000000010044c                idt_set
-                0x0000000000100468                idt_get
-                0x0000000000100486                idt_init_call
-                0x00000000001004e2                idt_init_intr
-                0x000000000010053e                idt_init_trap
-                0x000000000010059a                idt_init_task
-                0x00000000001005f6                idt_load
-                0x000000000010062c                page_link
-                0x00000000001006ad                page_directory_load
-                0x00000000001006c4                tss_load
-                0x0000000000100724                init_8259A
-                0x00000000001007f4                disable_irq
-                0x0000000000100889                enable_irq
-                0x0000000000100924                print_pos
- *fill*         0x000000000010095c        0x4 00
- .text          0x0000000000100960     0x2ced bin/micro-kernel.o
-                0x0000000000100960                save
-                0x00000000001009af                restart
-                0x00000000001009e0                hwint00
-                0x0000000000100a00                hwint01
-                0x0000000000100a20                hwint02
-                0x0000000000100a40                hwint03
-                0x0000000000100a60                hwint04
-                0x0000000000100a80                hwint05
-                0x0000000000100aa0                hwint06
-                0x0000000000100ac0                hwint07
-                0x0000000000100ae0                hwint08
-                0x0000000000100b10                hwint09
-                0x0000000000100b40                hwint10
-                0x0000000000100b70                hwint11
-                0x0000000000100ba0                hwint12
-                0x0000000000100bd0                hwint13
-                0x0000000000100c00                hwint14
-                0x0000000000100c30                hwint15
-                0x0000000000100c53                divide_error
-                0x0000000000100c71                single_step_exception
-                0x0000000000100c8f                nmi
-                0x0000000000100cad                breakpoint_exception
-                0x0000000000100ccb                overflow
-                0x0000000000100ce9                bounds_check
-                0x0000000000100d07                inval_opcode
-                0x0000000000100d25                copr_not_available
-                0x0000000000100d43                double_fault
-                0x0000000000100d5f                copr_seg_overrun
-                0x0000000000100d7d                inval_tss
-                0x0000000000100d99                segment_not_present
-                0x0000000000100db5                stack_exception
-                0x0000000000100dd1                general_protection
-                0x0000000000100ded                page_fault
-                0x0000000000100e09                copr_error
-                0x0000000000100e28                wait
-                0x0000000000100e6d                exit
-                0x0000000000100e9c                kernel_main
-                0x0000000000100ede                kernel_main_thread
-                0x0000000000100f03                test_main
-                0x00000000001010e9                main_thread_create
-                0x0000000000101248                intr_handle
-                0x00000000001012b7                exception_handle
-                0x000000000010132c                page_init
-                0x000000000010143a                gdt_init
-                0x000000000010155f                tss_init
-                0x00000000001015ee                idt_init
-                0x0000000000101aae                post
-                0x0000000000101b63                recv
-                0x0000000000101cdd                thread_init
-                0x0000000000101db1                thread_set
-                0x0000000000101df1                thread_wait
-                0x0000000000101e20                thread_exit
-                0x0000000000101eab                thread_schedule
-                0x0000000000102048                create
-                0x00000000001020e5                ready
-                0x000000000010211b                sleep
-                0x000000000010215c                wake
-                0x000000000010219d                kill
-                0x000000000010221d                lock
-                0x0000000000102239                unlock
-                0x00000000001022fc                buddy_init
-                0x00000000001024b2                page_search
-                0x00000000001024f9                page_alloc
-                0x00000000001025ff                page_free
-                0x0000000000102765                page_is_buddy
-                0x00000000001027a0                alloc
-                0x00000000001027ed                free
-                0x0000000000102940                new
-                0x0000000000102a1f                delete
-                0x0000000000102aa0                mod_time_show
-                0x0000000000102c8f                mod_time_read_cmos
-                0x0000000000102da9                mod_time_do
-                0x0000000000102dc5                mod_time_main
-                0x0000000000102e88                mod_public_msg_do
-                0x0000000000102fc8                mod_public_msg_main
-                0x000000000010307a                mod_addr_room_create
-                0x00000000001030e4                mod_addr_room_alloc
-                0x000000000010313d                mod_addr_room_add
-                0x000000000010324e                mod_addr_room_del
-                0x000000000010328d                mod_addr_room_switch
-                0x0000000000103462                mod_addr_room_do
-                0x00000000001035ad                mod_addr_room_main
- *fill*         0x000000000010364d        0x3 00
- .text          0x0000000000103650      0xa57 bin/lib.o
-                0x0000000000103650                memset
-                0x0000000000103668                memcpy
-                0x000000000010369d                memcmp
-                0x00000000001036e9                strcpy
-                0x0000000000103722                strcat
-                0x000000000010376c                list_init
-                0x0000000000103788                list_add
-                0x00000000001037d7                list_addtail
-                0x0000000000103823                list_search
-                0x000000000010386b                list_insert
-                0x00000000001038d8                list_unlink
-                0x0000000000103911                list_delete
-                0x000000000010394b                list_empty
-                0x00000000001039c0                itoa
-                0x0000000000103be8                dbcd_to_str
-                0x0000000000103c1c                dbcd_to_int
-                0x0000000000103e70                hash_create
-                0x0000000000103f26                hash_set
-                0x0000000000103f7e                hash_get
-                0x0000000000103fe9                hash_del
-                0x0000000000104054                hash_getaddr
 
-.rel.dyn        0x00000000001040a8        0x0
- .rel.iplt      0x0000000000000000        0x0 bin/arch.o
- .rel.text      0x0000000000000000        0x0 bin/arch.o
+.rel.dyn        0x0000000000100008        0x0
+ .rel.iplt      0x0000000000000000        0x0 bin/kernel.o
 
-.data           0x00000000001040c0      0x2b0
-                0x00000000001040c0                _data = ABSOLUTE (.)
+.data           0x0000000000100008        0x0
+                0x0000000000100008                _data = ABSOLUTE (.)
  *(.data .rodata)
- .data          0x00000000001040c0        0x4 bin/arch.o
-                0x00000000001040c0                disp_pos
- *fill*         0x00000000001040c4       0x1c 00
- .rodata        0x00000000001040e0      0x168 bin/micro-kernel.o
-                0x0000000000104160                msg_priority_table
- *fill*         0x0000000000104248       0x18 00
- .data          0x0000000000104260      0x110 bin/micro-kernel.o
-                0x0000000000104260                msg_ok
-                0x0000000000104270                msg_fail
-                0x0000000000104280                msg_max
-                0x0000000000104290                msg_reg
-                0x00000000001042a0                thread_default_reg
-                0x0000000000104300                day_of_week_table
- .data          0x0000000000104370        0x0 bin/lib.o
+ .data          0x0000000000100008        0x0 bin/kernel.o
 
-.igot.plt       0x0000000000104370        0x0
- .igot.plt      0x0000000000000000        0x0 bin/arch.o
+.igot.plt       0x0000000000100008        0x0
+ .igot.plt      0x0000000000000000        0x0 bin/kernel.o
 
-.bss            0x0000000000104380     0xa9e4
-                0x0000000000104380                _bss = ABSOLUTE (.)
+.bss            0x0000000000100008        0x0
+                0x0000000000100008                _bss = ABSOLUTE (.)
  *(.bss)
- .bss           0x0000000000104380        0x0 bin/arch.o
- .bss           0x0000000000104380     0x1200 bin/micro-kernel.o
-                0x0000000000104380                msg_reg_table
- .bss           0x0000000000105580        0x0 bin/lib.o
+ .bss           0x0000000000100008        0x0 bin/kernel.o
  *(COMMON)
- COMMON         0x0000000000105580      0x9e0 bin/arch.o
-                0x0000000000105580                gdt_table
-                0x0000000000105680                idt_ptr
-                0x00000000001056a0                tss
-                0x000000000010570c                gdt_ptr
-                0x0000000000105712                tss_sel
-                0x0000000000105714                ldt_ptr
-                0x0000000000105720                idt_table
-                0x0000000000105f20                ldt_table
- COMMON         0x0000000000105f60     0x8e04 bin/micro-kernel.o
-                0x0000000000105f60                mod_time_id
-                0x0000000000105f62                mod_hd_id
-                0x0000000000105f80                handle_table
-                0x0000000000106b80                kernel_reenter
-                0x0000000000106b84                handle_ret_addr
-                0x0000000000106ba0                zone
-                0x0000000000106c30                thread_realtime
-                0x0000000000106c40                mod_addr_room_base
-                0x0000000000107c40                mod_addr_room_id
-                0x0000000000107c60                thread_table
-                0x0000000000107ce0                mod_time_sysclock
-                0x0000000000107ce8                thread_queue_ready
-                0x0000000000107cf0                mod_public_msg_id
-                0x0000000000107d00                mod_addr_block_base
-                0x000000000010dd00                thread_resched_lock
-                0x000000000010dd04                thread_queue_sleep
-                0x000000000010dd0c                handle_err_code
-                0x000000000010dd10                kernel_stack_top
-                0x000000000010dd20                g_page_dir
-                0x000000000010ed20                thread_run
-                0x000000000010ed24                mod_addr_block_hash
-                0x000000000010ed40                thread_run_stack_top
-                0x000000000010ed44                test_id
-                0x000000000010ed48                mod_addr_room_hash
-                0x000000000010ed64                _end = ABSOLUTE (.)
+                0x0000000000100008                _end = ABSOLUTE (.)
 
-.bios           0x0000000000030000      0x300
+.bios
  *(bios)
- bios           0x0000000000030000      0x300 bin/arch.o
-                0x0000000000030000                mem_info
-                0x0000000000030200                mem_mcr_number
-                0x0000000000030204                mem_size
-                0x0000000000030208                mem_used_map
-                0x000000000003020c                mem_used_map_max
-                0x0000000000030300                cmos_info
 
 /DISCARD/
  *(.symtab)
@@ -288,16 +44,5 @@ Linker script and memory map
  *(.shstrtab)
  *(.rel.dyn)
  *(.shstrtab)
-LOAD bin/arch.o
-LOAD bin/micro-kernel.o
-LOAD bin/lib.o
+LOAD bin/kernel.o
 OUTPUT(bin/kernel.bin elf32-i386)
-
-.note.GNU-stack
-                0x0000000000000000        0x0
- .note.GNU-stack
-                0x0000000000000000        0x0 bin/arch.o
- .note.GNU-stack
-                0x0000000000000000        0x0 bin/micro-kernel.o
- .note.GNU-stack
-                0x0000000000000000        0x0 bin/lib.o

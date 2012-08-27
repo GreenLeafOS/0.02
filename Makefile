@@ -13,8 +13,8 @@ ld_flags			=	-T link.lds -Map bin/kernel.map -s
 image		= 	bin/kernel.img
 #------------Ä¿±ê-----------
 boot		=	bin/boot.bin bin/loader.bin
-sub_dir		=	arch micro-kernel lib
-# kernel
+sub_dir		=	kernel
+# arch micro-kernel lib
 objs 		:= $(foreach path,$(sub_dir),bin/$(path).o)
 
 .PHONY : clean all finalclean image

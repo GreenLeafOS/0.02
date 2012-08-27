@@ -33,6 +33,8 @@ real_start:
 	mov 	$0xb800,%bx
 	mov 	%bx, %gs
 
+	call	mem_set
+
 	movb 	%dl,%ds:(boot_drive)
 
 	/* 调用cls清屏 */
@@ -48,7 +50,22 @@ real_start:
 	call 	read_loader
 
 	ljmp 	$Loader_BaseAddr,$Loader_OffsetAddr
+/************************************************************************/
+/*						  清除内存
+/*					     mem_set
+/************************************************************************/
+mem_set:
+	mov		$Param_Seg,%ax
+	mov		%ax,%es
+	movl	$Param_Base,%eax
+	movl	$Param_End,%ecx
+	subl	%eax,%ecx
+_mem_set:
+	movl	$0,%es:(%eax,%ecx)
+	subl	$4,%ecx
+	jnz		_mem_set
 
+	ret
 /************************************************************************/
 /*                      	清屏
 /*                          cls
