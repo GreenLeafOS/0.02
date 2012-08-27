@@ -33,6 +33,7 @@ real_start:
 	mov 	$0xb800,%bx
 	mov 	%bx, %gs
 
+	/* ∂‘ƒ⁄¥Ê«Â¡„ */
 	call	mem_set
 
 	movb 	%dl,%ds:(boot_drive)

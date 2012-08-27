@@ -3,4 +3,7 @@
 .code32
 .section 	.text
 _start:
-	jmp		_start
+	mov		$0x0f61,%ax
+	mov		%ax,%gs:480
+
+loop:	jmp		loop

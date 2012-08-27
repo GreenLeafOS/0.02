@@ -33,9 +33,6 @@ real_start:
 	mov		%ax, %ss
 	mov		$0x7000,%sp
 
-	/* 清除内存 */
-	call	mem_set
-
 	/* 输出字符串 */
 	call	disp_str
 
@@ -52,28 +49,12 @@ real_start:
 	jmp		jmp_pm
 
 /************************************************************************/
-/*						  清除内存
-/*					     mem_set
-/************************************************************************/
-mem_set:
-	movl	$Bios_InfoSeg,%eax
-	mov		%ax,%es
-	movl	$Bios_InfoBase,%eax
-	movl	$Bios_InfoEnd,%ecx
-	subl	%eax,%ecx
-_mem_set:
-	movl	$0,%es:(%eax,%ecx)
-	subl	$4,%ecx
-	jnz		_mem_set
-
-	ret
-/************************************************************************/
 /*						获取内存信息
 /*					    get_mem_info
 /*	读入 es:di 中
 /************************************************************************/
 get_mem_info:
-	mov		$Bios_InfoSeg,%ax
+	mov		$Param_Seg,%ax
 	mov		%ax,%es
 	mov		$Bios_MCR,%di
 
@@ -100,7 +81,7 @@ _get_mem_info_fail:
 /*	读入 es:di 中
 /************************************************************************/
 get_cmos:
-	mov		$Bios_InfoSeg,%ax
+	mov		$Param_Seg,%ax
 	mov		%ax,%es
 	mov		$Bios_CMOS,%di		/* 偏移 */
 	mov		$256,%cx			/* 循环次数 */

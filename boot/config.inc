@@ -3,7 +3,7 @@
 */
 
 Param_Seg				=	0x0
-Param_Base				=	0x2000
+Param_Base				=	0x1000
 Param_End				=	0x2400
 
 boot_drive 				= 	0x2000
@@ -17,13 +17,9 @@ Kernel_ImgAddr			=	Kernel_FileAddr*16
 Loader_BaseAddr			=	0
 Loader_OffsetAddr		=	0x8000
 
-Bios_InfoSeg			=	0x3000
-Bios_InfoBase			=	0
-Bios_InfoEnd			=	0x400
-
-Bios_MCR				=	0x0
-Bios_MCRNumber			=	0x200
-Bios_CMOS				=	0x300
+Bios_MCR				=	0x1000
+Bios_MCRNumber			=	0x1200
+Bios_CMOS				=	0x1300
 
 
 
