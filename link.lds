@@ -18,7 +18,7 @@ SECTIONS
 		*(COMMON)
 		_end = ABSOLUTE(.);
 	}
-	.bios 0x30000 :
+	.bios 0 :
 	{
 		*(bios)
 	}

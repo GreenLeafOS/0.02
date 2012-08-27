@@ -1,9 +1,9 @@
-.global		_start
-
 .code32
 .section 	.text
+.global		_start
+
 _start:
-	mov		$0x0f61,%ax
-	mov		%ax,%gs:480
+	mov		$0x0f00+'k',%ax
+	mov		%ax,%gs:640
 
 loop:	jmp		loop

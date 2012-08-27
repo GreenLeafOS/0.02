@@ -13,7 +13,7 @@ ld_flags			=	-T link.lds -Map bin/kernel.map -s
 image		= 	bin/kernel.img
 #------------Ä¿±ê-----------
 boot		=	bin/boot.bin bin/loader.bin
-sub_dir		=	kernel
+sub_dir		=	kernel lib
 # arch micro-kernel lib
 objs 		:= $(foreach path,$(sub_dir),bin/$(path).o)
 

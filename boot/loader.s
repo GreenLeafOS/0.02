@@ -1,10 +1,19 @@
-/*===============================================================
- *                     	 loader.s
- *						引导程序代码
- ===============================================================*/
+/*
+ * loader.s
+ * 输出Loading...
+ * 检测磁盘，读入内核
+ * 获取BIOS数据
+ * 跳入保护模式
+ * 初始化段寄存器
+ * 输出In protected mode now!
+ * 调整内核
+ * 启动分页机制
+ * 跳入内核
+ */
+
+
  .code16
 .global	_start
-.global	_memcpy_end
 _start:
 	jmp		real_start
 
@@ -116,7 +125,7 @@ _disp_str_loop:
 _disp_str_end:
 	ret
 loader_msg:
-	.asciz	"Load the kernel."
+	.asciz	"Loading..."
 /************************************************************************/
 /*                      读取kernel
 /*                     read_kernel
@@ -135,11 +144,12 @@ read_kernel:
 /************************************************************************/
 .code16
 gdt:
-/*标签				宏名			段基址		段界限		属性							*/
-gdt_null:			Descriptor	0,			0,			0
-gdt_desc_code:		Descriptor	0,			0xfffff,	DA_CR  | DA_32 | DA_LIMIT_4K
-gdt_desc_data:		Descriptor	0,			0xfffff,	DA_DRW | DA_32 | DA_LIMIT_4K
-gdt_desc_video:		Descriptor	0xb8000,	0x0ffff,	DA_DRW | DA_DPL3
+/*标签				宏名			段基址			段界限		属性							*/
+gdt_null:			Descriptor	0,				0,			0
+gdt_desc_code:		Descriptor	0,				0xfffff,	DA_CR  | DA_32 | DA_LIMIT_4K
+gdt_desc_data:		Descriptor	0,				0xfffff,	DA_DRW | DA_32 | DA_LIMIT_4K
+gdt_desc_kcode:		Descriptor	KernelVAOffset,	0xfffff,	DA_CR  | DA_32 | DA_LIMIT_4K
+gdt_desc_video:		Descriptor	0xb8000,		0x0ffff,	DA_DRW | DA_DPL3
 
 /* gdtptr */
 gdt_len		=	gdt_ptr - gdt
@@ -151,6 +161,7 @@ gdt_ptr:
 /* gdt选择子 */
 sel_code		=	gdt_desc_code	- gdt
 sel_data		=	gdt_desc_data	- gdt
+sel_kcode		=	gdt_desc_kcode	- gdt
 sel_video		=	gdt_desc_video	- gdt + SA_RPL3
 /************************************************************************/
 /*                     	跳入保护模式
@@ -197,16 +208,23 @@ pm_start:
 	mov 	$sel_video, %bx
 	mov 	%bx, %gs			/* 显存段gs */
 
-	call	disp_str32
-
-	jmp		goto_kernel
-/************************************************************************/
-/*                      在屏幕上显示字符串
-/*                         disp_str
-/************************************************************************/
-disp_str32:
 	mov		$loader_msg32,%si
 	mov		$320,%di
+	call	disp_str32
+
+	call	setup_paging
+
+	mov		$loader_msg_paging,%si
+	mov		$480,%di
+	call	disp_str32
+
+	call	goto_kernel
+	ljmp	$sel_kcode,$Kernel_ImgAddr
+/************************************************************************/
+/*                      在屏幕上显示字符串
+/*                        disp_str32
+/************************************************************************/
+disp_str32:
 	mov		$0x0f, %ah		/* 黑底白字 */
 _disp_str_loop32:
 	mov		(%si),%al
@@ -220,7 +238,62 @@ _disp_str_end32:
 	ret
 loader_msg32:
 	.asciz	"In protected mode now!"
+loader_msg_paging:
+	.asciz	"Setuping paging."
+/************************************************************************/
+/*                        启动分页机制
+/*                        setup_paging
+/************************************************************************/
+/*
+ * setup_paging
+ * 初始化分页机制
+ * 先将ebx置为0，调用_setup_pde_init，实现前4M的对等映射
+ * 这种映射是暂时的，到了内核中，就会取消前4M的映射，这种暂时映射是为了保证eip能正确寻址
+ * 将ebx置为PdeStart，把物理地址前4M映射到3G开始的4M
+ * 然后启动分页机制
+ */
+setup_paging:
+	movl	$0,%ebx
+	call	_setup_pde_init
+	movl	$PdeStart,%ebx
+	call	_setup_pde_init
 
+	movl	$PageDirBase,%eax
+	movl	%eax,%cr3
+	movl	%cr0,%eax
+	orl		$0x80000000,%eax
+	movl	%eax,%cr0
+
+	ret
+
+/*
+ * 子程序
+ * setup_pde_init
+ * 把内核地址空间映射到线性地址前4M或3G开始的前4M
+ * pde的index由传入参数ebx确定
+ */
+_setup_pde_init:
+	movl	$PageDirBase,%edi								/* edi:页目录基地址 */
+	movl	$PdeCount,%ecx									/* ecx:pde项数 */
+	movl	$PageTblBase | PG_P | PG_USU | PG_RWW,%eax		/* eax:pde项 */
+_setup_pde_loop:
+	movl	%eax,%ds:(%edi,%ebx,PageItemSize)				/* 写入pde */
+	incl	%ebx											/* index++ */
+	addl	$PageSize,%eax									/* pde项中的指针指向下一个页表 */
+	loop	_setup_pde_loop									/* 循环ecx次 */
+
+_setup_pte_init:
+	movl	$PageTblBase,%edi								/* edi:页表基地址 */
+	movl	$PteCount,%ecx									/* ecx:页表项数 */
+	movl	$0,%ebx											/* ebx:index */
+	movl	$ 0 | PG_P | PG_USU | PG_RWW,%eax				/* eax:pte项 */
+_setup_pte_loop:
+	movl	%eax,%ds:(%edi,%ebx,PageItemSize)				/* 写入pte */
+	incl	%ebx											/* index++ */
+	addl	$PageSize,%eax									/* pte项中的指针指向下一个页框 */
+	loop	_setup_pte_loop									/* 循环ecx次 */
+_setup_paging_end:
+	ret
 /************************************************************************/
 /*                      初始化并进入内核(跳入保护模式后)
 /*                        goto_kernel
@@ -249,7 +322,7 @@ _goto_kernel_noaction:
 	decl	%ecx						/* 条目计数减1 */
 	jnz		_goto_kernel_begin
 _goto_kernel:
-	ljmp	$sel_code,$Kernel_ImgAddr
+	ret
 /************************************************************************/
 /*                        内存拷贝
 /*                        memcpy
@@ -288,4 +361,20 @@ _memcpy_end:
 	popl	%ebp
 
 	ret						/* 函数结束，返回 */
-
+/************************************************************************/
+/*                        内存填充
+/*                        memcpy
+/* void    *memset(void *, int, size_t);
+/************************************************************************/
+memset:
+	push %ebp
+	mov %esp,%ebp
+	mov 8(%ebp),%edi
+    mov 12(%ebp),%eax
+    mov 16(%ebp),%ecx
+    rep
+    stosb
+    mov 8(%ebp),%eax
+    mov %ebp,%esp
+    pop %ebp
+    ret
