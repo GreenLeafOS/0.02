@@ -34,8 +34,10 @@ KernelVAEnd			=		0xc0000000 + KernelSize	/* 映射物理地址前4M到3G */
 
 PdeStart			=		KernelVAOffset/PageItems/PageSize	/* 计算线性地址的页表描述符的pde */
 
-PteCount			=		KernelSize/PageSize					/* 计算需要几个pte */
-PdeCount			=		PteCount/PageItems					/* 计算需要几个pde */
+PteCount			=		KernelSize/PageSize					/* 计算需要几个pte,也就是有几个页 */
+PtbCount			=		(PteCount/PageItems)+1				/* 计算需要几个页表 */
+PdeCount			=		(PtbCount/PageItems)+1				/* 计算需要几个pde */
+
 
 
 

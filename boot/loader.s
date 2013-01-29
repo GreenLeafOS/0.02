@@ -220,6 +220,21 @@ pm_start:
 
 	call	goto_kernel
 	ljmp	$sel_kcode,$Kernel_ImgAddr
+
+/************************************************************************/
+/*                     对内存清零
+/*                 		mem_set
+/************************************************************************/
+mem_set:
+	movl	$PageDirBase,%eax
+	movl	$PageDirBase + PtbCount*PageSize,%ecx
+	subl	%eax,%ecx
+_mem_set:
+	movl	$0,%ds:(%eax,%ecx)
+	subl	$4,%ecx
+	jnz		_mem_set
+
+	ret
 /************************************************************************/
 /*                      在屏幕上显示字符串
 /*                        disp_str32
@@ -253,6 +268,8 @@ loader_msg_paging:
  * 然后启动分页机制
  */
 setup_paging:
+	call	mem_set
+
 	movl	$0,%ebx
 	call	_setup_pde_init
 	movl	$PdeStart,%ebx

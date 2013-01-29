@@ -1,5 +1,5 @@
 asm					=	as
-asm_flags			=	-I ../arch/include/ -I ../micro-kernel/include/
+asm_flags			=	-I include/ -I ../kernel/include/
 
 cc					=	gcc
 cc_flags			=	-I ../ -c -std=c99 -fno-stack-protector -m32
