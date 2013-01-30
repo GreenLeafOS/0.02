@@ -14,4 +14,5 @@ void page_init()
 	buddy_init();
 	kernel_space.start = KernelBase/PageSize;
 	kernel_space.block = page_alloc(11);
+	return;
 }

@@ -50,13 +50,18 @@ void buddy_init()
 	for (int j=0;j<biggest_count;j++)	/* j小于最大块数 */
 	{
 		PhyPage* block = base + (j * BIGGEST_SIZE);
+
+		block->node.next = NULL;
+		block->node.prev = NULL;
+		block->flags = 0;
 		block->private = BIGGEST_SIZE;
+
 		zone.free_pages += BIGGEST_SIZE;
 		list_addtail(&zone.free_area[10].free_list,&block->node);
 	}
 	int order = 0;
-	PagesToOrder(page_count,order);
 
+	PagesToOrder(page_count,order);
 	page_alloc(order);
 
 	return;

@@ -15,7 +15,7 @@ _start:
 	call	arch_init
 	call	page_init
 
-	mov		$0x0f00+'E',%ax
+	mov		$0x0f00+'P',%ax
 	mov		%ax,%gs:642
 
 loop:	jmp		loop

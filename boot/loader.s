@@ -291,19 +291,21 @@ setup_paging:
  */
 _setup_pde_init:
 	movl	$PageDirBase,%edi								/* edi:页目录基地址 */
-	movl	$PdeCount,%ecx									/* ecx:pde项数 */
-	movl	$PageTblBase | PG_P | PG_USU | PG_RWW,%eax		/* eax:pde项 */
+	movl	$PtbCount,%ecx									/* ecx:pde项数,也就是页表数目 */
+	movl	$PageTblBase | PG_P | PG_USU | PG_RWW,%eax		/* eax:pde项内容 */
 _setup_pde_loop:
-	movl	%eax,%ds:(%edi,%ebx,PageItemSize)				/* 写入pde */
+	movl	%eax,%ds:(%edi,%ebx,PageItemSize)				/* 把eax中的内容写入pde */
 	incl	%ebx											/* index++ */
 	addl	$PageSize,%eax									/* pde项中的指针指向下一个页表 */
+
 	loop	_setup_pde_loop									/* 循环ecx次 */
 
+/* 初始化页表 */
 _setup_pte_init:
 	movl	$PageTblBase,%edi								/* edi:页表基地址 */
-	movl	$PteCount,%ecx									/* ecx:页表项数 */
+	movl	$PgCount,%ecx									/* ecx:pde页表项数，也就是需要映射的页框数目 */
 	movl	$0,%ebx											/* ebx:index */
-	movl	$ 0 | PG_P | PG_USU | PG_RWW,%eax				/* eax:pte项 */
+	movl	$0 | PG_P | PG_USU | PG_RWW,%eax				/* eax:pte项内容 */
 _setup_pte_loop:
 	movl	%eax,%ds:(%edi,%ebx,PageItemSize)				/* 写入pte */
 	incl	%ebx											/* index++ */

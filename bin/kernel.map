@@ -1,6 +1,27 @@
 
+Allocating common symbols
+Common symbol       size              file
+
+gdt_table           0x100             bin/kernel.o
+handle_table        0xc00             bin/kernel.o
+idt_ptr             0x6               bin/kernel.o
+linear_space_hash   0x1c              bin/kernel.o
+page_block_base     0x6000            bin/kernel.o
+handle_ret_addr     0x4               bin/kernel.o
+zone                0x90              bin/kernel.o
+linear_space_base   0x1000            bin/kernel.o
+tss                 0x6c              bin/kernel.o
+handle_err_code     0x4               bin/kernel.o
+page_block_hash     0x1c              bin/kernel.o
+gdt_ptr             0x6               bin/kernel.o
+kernel_space        0x18              bin/kernel.o
+tss_sel             0x2               bin/kernel.o
+idt_table           0x800             bin/kernel.o
+
 Discarded input sections
 
+ .eh_frame      0x0000000000000000      0x7b4 bin/kernel.o
+ .comment       0x0000000000000000      0x1ae bin/kernel.o
  .eh_frame      0x0000000000000000      0x3e4 bin/lib.o
  .comment       0x0000000000000000       0xd7 bin/lib.o
 
@@ -12,57 +33,119 @@ Name             Origin             Length             Attributes
 Linker script and memory map
 
 
-.text           0x0000000000100000      0xa67
+.text           0x0000000000100000     0x1f4f
                 0x0000000000100000                _text = ABSOLUTE (.)
  *(.text)
- .text          0x0000000000100000        0xd bin/kernel.o
+ .text          0x0000000000100000     0x14f8 bin/kernel.o
                 0x0000000000100000                _start
- *fill*         0x000000000010000d        0x3 00
- .text          0x0000000000100010      0xa57 bin/lib.o
-                0x0000000000100010                memset
-                0x0000000000100028                memcpy
-                0x000000000010005d                memcmp
-                0x00000000001000a9                strcpy
-                0x00000000001000e2                strcat
-                0x000000000010012c                list_init
-                0x0000000000100148                list_add
-                0x0000000000100197                list_addtail
-                0x00000000001001e3                list_search
-                0x000000000010022b                list_insert
-                0x0000000000100298                list_unlink
-                0x00000000001002d1                list_delete
-                0x000000000010030b                list_empty
-                0x0000000000100380                itoa
-                0x00000000001005a8                dbcd_to_str
-                0x00000000001005dc                dbcd_to_int
-                0x0000000000100830                hash_create
-                0x00000000001008e6                hash_set
-                0x000000000010093e                hash_get
-                0x00000000001009a9                hash_del
-                0x0000000000100a14                hash_getaddr
+                0x0000000000100044                arch_init
+                0x0000000000100060                desc_create
+                0x00000000001000e3                gate_create
+                0x0000000000100146                gdt_add
+                0x00000000001001a0                gdt_remove
+                0x00000000001001ba                gdt_set
+                0x00000000001001e0                gdt_get
+                0x00000000001001fe                gdt_load
+                0x0000000000100233                idt_set
+                0x000000000010024f                idt_get
+                0x000000000010026d                idt_init_call
+                0x00000000001002c9                idt_init_intr
+                0x0000000000100325                idt_init_trap
+                0x0000000000100381                idt_init_task
+                0x00000000001003dd                idt_load
+                0x0000000000100412                tss_load
+                0x0000000000100428                gdt_init
+                0x0000000000100564                tss_init
+                0x00000000001005f4                idt_init
+                0x00000000001005f9                intr_handle
+                0x00000000001005fe                exception_handle
+                0x000000000010064c                init_8259A
+                0x000000000010071c                disable_irq
+                0x00000000001007b1                enable_irq
+                0x000000000010084c                page_init
+                0x0000000000100918                buddy_init
+                0x0000000000100aeb                page_search
+                0x0000000000100b32                page_alloc
+                0x0000000000100c38                page_free
+                0x0000000000100d9e                page_is_buddy
+                0x0000000000100dd9                alloc
+                0x0000000000100e26                free
+                0x0000000000100ec2                linear_space_create
+                0x0000000000100f41                mod_addr_room_alloc
+                0x0000000000100f9a                mod_addr_room_add
+                0x00000000001010ab                mod_addr_room_del
+                0x00000000001010ea                mod_addr_room_switch
+                0x00000000001013e0                new
+                0x00000000001014c1                delete
+ .text          0x00000000001014f8      0xa57 bin/lib.o
+                0x00000000001014f8                memset
+                0x0000000000101510                memcpy
+                0x0000000000101545                memcmp
+                0x0000000000101591                strcpy
+                0x00000000001015ca                strcat
+                0x0000000000101614                list_init
+                0x0000000000101630                list_add
+                0x000000000010167f                list_addtail
+                0x00000000001016cb                list_search
+                0x0000000000101713                list_insert
+                0x0000000000101780                list_unlink
+                0x00000000001017b9                list_delete
+                0x00000000001017f3                list_empty
+                0x0000000000101868                itoa
+                0x0000000000101a90                dbcd_to_str
+                0x0000000000101ac4                dbcd_to_int
+                0x0000000000101d18                hash_create
+                0x0000000000101dce                hash_set
+                0x0000000000101e26                hash_get
+                0x0000000000101e91                hash_del
+                0x0000000000101efc                hash_getaddr
 
-.rel.dyn        0x0000000000100a68        0x0
- .rel.iplt      0x0000000000000000        0x0 bin/lib.o
+.rel.dyn        0x0000000000101f50        0x0
+ .rel.iplt      0x0000000000000000        0x0 bin/kernel.o
+ .rel.text      0x0000000000000000        0x0 bin/kernel.o
 
-.data           0x0000000000100a68        0x0
-                0x0000000000100a68                _data = ABSOLUTE (.)
+.data           0x0000000000101f50        0x0
+                0x0000000000101f50                _data = ABSOLUTE (.)
  *(.data .rodata)
- .data          0x0000000000100a68        0x0 bin/kernel.o
- .data          0x0000000000100a68        0x0 bin/lib.o
+ .data          0x0000000000101f50        0x0 bin/kernel.o
+ .data          0x0000000000101f50        0x0 bin/lib.o
 
-.igot.plt       0x0000000000100a68        0x0
- .igot.plt      0x0000000000000000        0x0 bin/lib.o
+.igot.plt       0x0000000000101f50        0x0
+ .igot.plt      0x0000000000000000        0x0 bin/kernel.o
 
-.bss            0x0000000000100a68        0x0
-                0x0000000000100a68                _bss = ABSOLUTE (.)
+.bss            0x0000000000101f60     0x86c0
+                0x0000000000101f60                _bss = ABSOLUTE (.)
  *(.bss)
- .bss           0x0000000000100a68        0x0 bin/kernel.o
- .bss           0x0000000000100a68        0x0 bin/lib.o
+ .bss           0x0000000000101f60        0x0 bin/kernel.o
+ .bss           0x0000000000101f60        0x0 bin/lib.o
  *(COMMON)
-                0x0000000000100a68                _end = ABSOLUTE (.)
+ COMMON         0x0000000000101f60     0x86c0 bin/kernel.o
+                0x0000000000101f60                gdt_table
+                0x0000000000102060                handle_table
+                0x0000000000102c60                idt_ptr
+                0x0000000000102c68                linear_space_hash
+                0x0000000000102ca0                page_block_base
+                0x0000000000108ca0                handle_ret_addr
+                0x0000000000108cc0                zone
+                0x0000000000108d60                linear_space_base
+                0x0000000000109d60                tss
+                0x0000000000109dcc                handle_err_code
+                0x0000000000109dd0                page_block_hash
+                0x0000000000109dec                gdt_ptr
+                0x0000000000109df4                kernel_space
+                0x0000000000109e0c                tss_sel
+                0x0000000000109e20                idt_table
+                0x000000000010a620                _end = ABSOLUTE (.)
 
-.bios
+.bios           0x0000000000000000      0x300
  *(bios)
+ bios           0x0000000000000000      0x300 bin/kernel.o
+                0x0000000000000000                mem_info
+                0x0000000000000200                mem_mcr_number
+                0x0000000000000204                mem_size
+                0x0000000000000208                mem_used_map
+                0x000000000000020c                mem_used_map_max
+                0x0000000000000300                cmos_info
 
 /DISCARD/
  *(.symtab)
@@ -80,5 +163,7 @@ OUTPUT(bin/kernel.bin elf32-i386)
 
 .note.GNU-stack
                 0x0000000000000000        0x0
+ .note.GNU-stack
+                0x0000000000000000        0x0 bin/kernel.o
  .note.GNU-stack
                 0x0000000000000000        0x0 bin/lib.o
