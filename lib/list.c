@@ -82,15 +82,11 @@ ListNode* list_search(ListHead *head,int index)
 }
 
 
-
-
 /*
- * 插入
- * */
-Bool list_insert(ListHead *head,ListNode *node,int index)
+ * 插入在某个节点后面
+ */
+Bool list_insert(ListHead *head,ListNode *node,ListNode *old_node)
 {
-	ListNode *old_node = list_search(head,index);
-
 	/* 测试指针是否有效 */
 	if (head && old_node && node && old_node->next)
 	{
@@ -106,8 +102,6 @@ Bool list_insert(ListHead *head,ListNode *node,int index)
 	}
 	return False;
 }
-
-
 
 /*
  * 解除链接

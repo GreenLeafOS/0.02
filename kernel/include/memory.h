@@ -16,23 +16,23 @@
 #define PAGE_SIZE		4096
 #define PageSize		4096
 
+/* 常用的内存大小 */
+#define _1M				1*1024*1024
+#define _32M			32*1024*1024
+#define _512M			512*1024*1024
+#define _4G				4096*1024*1024
+
 /* 储存单位换算 */
 #define MB_TO_PAGE(i)	i*256
 #define B_TO_PAGE(i)	i/PAGE_SIZE
-
+#define MB_TO_B(i)		i*1024*1024
 /* 计算需要的页表数 */
 #define PAGE_TO_NEED_TABLE(i)		i/MAX_PAGE_ENTRY
 #define B_TO_NEED_TABLE(i)			PAGE_TO_NEED_TABLE(B_TO_PAGE(i))
 #define MB_TO_NEED_TABLE(i)			PAGE_TO_NEED_TABLE(MB_TO_PAGE(i))
 
-/* 计算需要的位图数 */
-#define PAGE_TO_NEED_ITEM(i)		i/32
-#define B_TO_NEED_ITEM(i)			PAGE_TO_NEED_ITEM(B_TO_PAGE(i))
-#define MB_TO_NEED_ITEM(i)			PAGE_TO_NEED_ITEM(MB_TO_PAGE(i))
 
-#define KERNEL_USED_MEM_MB			4
-#define KERNEL_USED_MEM_ITEM		MB_TO_NEED_ITEM(KERNEL_USED_MEM_MB)
-
+/* 与内存相关的数据 */
 struct ARDS
 {
 	u32 BaseAddrLow;
@@ -43,9 +43,29 @@ struct ARDS
 };
 
 extern struct ARDS mem_info[12];
-extern int mem_size;
-extern u32* mem_used_map;
-extern int mem_used_map_max;
+extern u32 mem_size;
 extern int mem_mcr_number;
+
+
+/* 内核内存管理 */
+typedef struct free_list_item
+{
+	ListNode node;
+	u32 start;
+	u32 size;
+}FreeItem;
+
+/* 空闲列表 */
+FreeItem free_items[256];
+ListHead free_list;
+ListHead used_list;
+
+/* 内核空间大小 */
+int kernel_mem_size;
+
+/* 内核内存分配函数 */
+void* memory_alloc(u32 size);
+void memory_free(void* p);
+void memory_merger();
 
 #endif /* MEMORY_H_ */

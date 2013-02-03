@@ -21,7 +21,7 @@ void gdt_init()
 	gdt_add(desc_create(KernelBase,	0xfffff,	DA_DRW|DA_32|DA_LIMIT_4K));				// 系统数据段
 	gdt_add(desc_create(0,			0xfffff,	DA_CR|DA_32|DA_LIMIT_4K|DA_DPL3));		// 用户代码段
 	gdt_add(desc_create(0,			0xfffff,	DA_DRW|DA_32|DA_LIMIT_4K|DA_DPL3));		// 用户数据段
-	gdt_add(desc_create(0xb8000,	0xfffff,	DA_DRW|DA_DPL3));						// 显存段
+	gdt_add(desc_create(KernelBase+0xb8000,	0xfffff,DA_DRW|DA_32|DA_LIMIT_4K|DA_DPL3));	// 显存段
 
 	// 加载GDT
 	gdt_load();

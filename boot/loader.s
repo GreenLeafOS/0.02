@@ -262,9 +262,9 @@ loader_msg_paging:
 /*
  * setup_paging
  * 初始化分页机制
- * 先将ebx置为0，调用_setup_pde_init，实现前4M的对等映射
- * 这种映射是暂时的，到了内核中，就会取消前4M的映射，这种暂时映射是为了保证eip能正确寻址
- * 将ebx置为PdeStart，把物理地址前4M映射到3G开始的4M
+ * 先将ebx置为0，调用_setup_pde_init，实现前8M的对等映射
+ * 这种映射是暂时的，到了内核中，就会取消前8M的映射，这种暂时映射是为了保证eip能正确寻址
+ * 将ebx置为PdeStart，把物理地址前8M映射到3G开始的8M
  * 然后启动分页机制
  */
 setup_paging:

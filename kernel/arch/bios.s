@@ -14,8 +14,9 @@
 .global mem_used_map_max
 .global cmos_info
 
+.org		0x1000
 mem_info:
-	.org	512
+	.org	0x1200
 mem_mcr_number:
 	.long	0
 mem_size:
@@ -25,6 +26,6 @@ mem_used_map:
 mem_used_map_max:
 	.long	0
 
-	.org	0x300
+	.org	0x1300
 cmos_info:
 

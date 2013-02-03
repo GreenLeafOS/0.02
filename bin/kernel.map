@@ -6,22 +6,28 @@ gdt_table           0x100             bin/kernel.o
 handle_table        0xc00             bin/kernel.o
 idt_ptr             0x6               bin/kernel.o
 linear_space_hash   0x1c              bin/kernel.o
+page_count          0x4               bin/kernel.o
 page_block_base     0x6000            bin/kernel.o
 handle_ret_addr     0x4               bin/kernel.o
 zone                0x90              bin/kernel.o
 linear_space_base   0x1000            bin/kernel.o
+kernel_mem_size     0x4               bin/kernel.o
+phypage_base        0x4               bin/kernel.o
+free_items          0x1000            bin/kernel.o
 tss                 0x6c              bin/kernel.o
 handle_err_code     0x4               bin/kernel.o
 page_block_hash     0x1c              bin/kernel.o
 gdt_ptr             0x6               bin/kernel.o
 kernel_space        0x18              bin/kernel.o
 tss_sel             0x2               bin/kernel.o
+used_list           0x8               bin/kernel.o
 idt_table           0x800             bin/kernel.o
+free_list           0x8               bin/kernel.o
 
 Discarded input sections
 
- .eh_frame      0x0000000000000000      0x7b4 bin/kernel.o
- .comment       0x0000000000000000      0x1ae bin/kernel.o
+ .eh_frame      0x0000000000000000      0x850 bin/kernel.o
+ .comment       0x0000000000000000      0x1d9 bin/kernel.o
  .eh_frame      0x0000000000000000      0x3e4 bin/lib.o
  .comment       0x0000000000000000       0xd7 bin/lib.o
 
@@ -33,119 +39,130 @@ Name             Origin             Length             Attributes
 Linker script and memory map
 
 
-.text           0x0000000000100000     0x1f4f
+.text           0x0000000000100000     0x23bf
                 0x0000000000100000                _text = ABSOLUTE (.)
  *(.text)
- .text          0x0000000000100000     0x14f8 bin/kernel.o
+ .text          0x0000000000100000     0x1980 bin/kernel.o
                 0x0000000000100000                _start
-                0x0000000000100044                arch_init
-                0x0000000000100060                desc_create
-                0x00000000001000e3                gate_create
-                0x0000000000100146                gdt_add
-                0x00000000001001a0                gdt_remove
-                0x00000000001001ba                gdt_set
-                0x00000000001001e0                gdt_get
-                0x00000000001001fe                gdt_load
-                0x0000000000100233                idt_set
-                0x000000000010024f                idt_get
-                0x000000000010026d                idt_init_call
-                0x00000000001002c9                idt_init_intr
-                0x0000000000100325                idt_init_trap
-                0x0000000000100381                idt_init_task
-                0x00000000001003dd                idt_load
-                0x0000000000100412                tss_load
-                0x0000000000100428                gdt_init
-                0x0000000000100564                tss_init
-                0x00000000001005f4                idt_init
-                0x00000000001005f9                intr_handle
-                0x00000000001005fe                exception_handle
-                0x000000000010064c                init_8259A
-                0x000000000010071c                disable_irq
-                0x00000000001007b1                enable_irq
-                0x000000000010084c                page_init
-                0x0000000000100918                buddy_init
-                0x0000000000100aeb                page_search
-                0x0000000000100b32                page_alloc
-                0x0000000000100c38                page_free
-                0x0000000000100d9e                page_is_buddy
-                0x0000000000100dd9                alloc
-                0x0000000000100e26                free
-                0x0000000000100ec2                linear_space_create
-                0x0000000000100f41                mod_addr_room_alloc
-                0x0000000000100f9a                mod_addr_room_add
-                0x00000000001010ab                mod_addr_room_del
-                0x00000000001010ea                mod_addr_room_switch
-                0x00000000001013e0                new
-                0x00000000001014c1                delete
- .text          0x00000000001014f8      0xa57 bin/lib.o
-                0x00000000001014f8                memset
-                0x0000000000101510                memcpy
-                0x0000000000101545                memcmp
-                0x0000000000101591                strcpy
-                0x00000000001015ca                strcat
-                0x0000000000101614                list_init
-                0x0000000000101630                list_add
-                0x000000000010167f                list_addtail
-                0x00000000001016cb                list_search
-                0x0000000000101713                list_insert
-                0x0000000000101780                list_unlink
-                0x00000000001017b9                list_delete
-                0x00000000001017f3                list_empty
-                0x0000000000101868                itoa
-                0x0000000000101a90                dbcd_to_str
-                0x0000000000101ac4                dbcd_to_int
-                0x0000000000101d18                hash_create
-                0x0000000000101dce                hash_set
-                0x0000000000101e26                hash_get
-                0x0000000000101e91                hash_del
-                0x0000000000101efc                hash_getaddr
+                0x000000000010003c                loop
+                0x0000000000100044                memory_init
+                0x0000000000100255                memory_alloc
+                0x0000000000100363                memory_free
+                0x0000000000100405                memory_merger
+                0x0000000000100490                arch_init
+                0x00000000001004ac                desc_create
+                0x000000000010052f                gate_create
+                0x0000000000100592                gdt_add
+                0x00000000001005ec                gdt_remove
+                0x0000000000100606                gdt_set
+                0x000000000010062c                gdt_get
+                0x000000000010064a                gdt_load
+                0x000000000010067f                idt_set
+                0x000000000010069b                idt_get
+                0x00000000001006b9                idt_init_call
+                0x0000000000100715                idt_init_intr
+                0x0000000000100771                idt_init_trap
+                0x00000000001007cd                idt_init_task
+                0x0000000000100829                idt_load
+                0x000000000010085e                tss_load
+                0x0000000000100874                gdt_init
+                0x00000000001009b0                tss_init
+                0x0000000000100a40                idt_init
+                0x0000000000100a45                intr_handle
+                0x0000000000100a4a                exception_handle
+                0x0000000000100a98                init_8259A
+                0x0000000000100b68                disable_irq
+                0x0000000000100bfd                enable_irq
+                0x0000000000100c98                page_init
+                0x0000000000100e64                buddy_init
+                0x0000000000100f73                page_search
+                0x0000000000100fba                page_alloc
+                0x00000000001010c0                page_free
+                0x0000000000101226                page_is_buddy
+                0x0000000000101261                alloc
+                0x00000000001012ae                free
+                0x000000000010134a                linear_space_create
+                0x00000000001013c9                mod_addr_room_alloc
+                0x0000000000101422                mod_addr_room_add
+                0x0000000000101533                mod_addr_room_del
+                0x0000000000101572                mod_addr_room_switch
+                0x0000000000101868                new
+                0x0000000000101949                delete
+ .text          0x0000000000101980      0xa3f bin/lib.o
+                0x0000000000101980                memset
+                0x0000000000101998                memcpy
+                0x00000000001019cd                memcmp
+                0x0000000000101a19                strcpy
+                0x0000000000101a52                strcat
+                0x0000000000101a9c                list_init
+                0x0000000000101ab8                list_add
+                0x0000000000101b07                list_addtail
+                0x0000000000101b53                list_search
+                0x0000000000101b9b                list_insert
+                0x0000000000101bf0                list_unlink
+                0x0000000000101c29                list_delete
+                0x0000000000101c63                list_empty
+                0x0000000000101cd8                itoa
+                0x0000000000101f00                dbcd_to_str
+                0x0000000000101f34                dbcd_to_int
+                0x0000000000102188                hash_create
+                0x000000000010223e                hash_set
+                0x0000000000102296                hash_get
+                0x0000000000102301                hash_del
+                0x000000000010236c                hash_getaddr
 
-.rel.dyn        0x0000000000101f50        0x0
+.rel.dyn        0x00000000001023c0        0x0
  .rel.iplt      0x0000000000000000        0x0 bin/kernel.o
  .rel.text      0x0000000000000000        0x0 bin/kernel.o
 
-.data           0x0000000000101f50        0x0
-                0x0000000000101f50                _data = ABSOLUTE (.)
+.data           0x00000000001023c0        0x0
+                0x00000000001023c0                _data = ABSOLUTE (.)
  *(.data .rodata)
- .data          0x0000000000101f50        0x0 bin/kernel.o
- .data          0x0000000000101f50        0x0 bin/lib.o
+ .data          0x00000000001023c0        0x0 bin/kernel.o
+ .data          0x00000000001023c0        0x0 bin/lib.o
 
-.igot.plt       0x0000000000101f50        0x0
+.igot.plt       0x00000000001023c0        0x0
  .igot.plt      0x0000000000000000        0x0 bin/kernel.o
 
-.bss            0x0000000000101f60     0x86c0
-                0x0000000000101f60                _bss = ABSOLUTE (.)
+.bss            0x00000000001023c0     0x96e8
+                0x00000000001023c0                _bss = ABSOLUTE (.)
  *(.bss)
- .bss           0x0000000000101f60        0x0 bin/kernel.o
- .bss           0x0000000000101f60        0x0 bin/lib.o
+ .bss           0x00000000001023c0        0x0 bin/kernel.o
+ .bss           0x00000000001023c0        0x0 bin/lib.o
  *(COMMON)
- COMMON         0x0000000000101f60     0x86c0 bin/kernel.o
-                0x0000000000101f60                gdt_table
-                0x0000000000102060                handle_table
-                0x0000000000102c60                idt_ptr
-                0x0000000000102c68                linear_space_hash
-                0x0000000000102ca0                page_block_base
-                0x0000000000108ca0                handle_ret_addr
-                0x0000000000108cc0                zone
-                0x0000000000108d60                linear_space_base
-                0x0000000000109d60                tss
-                0x0000000000109dcc                handle_err_code
-                0x0000000000109dd0                page_block_hash
-                0x0000000000109dec                gdt_ptr
-                0x0000000000109df4                kernel_space
-                0x0000000000109e0c                tss_sel
-                0x0000000000109e20                idt_table
-                0x000000000010a620                _end = ABSOLUTE (.)
+ COMMON         0x00000000001023c0     0x96e8 bin/kernel.o
+                0x00000000001023c0                gdt_table
+                0x00000000001024c0                handle_table
+                0x00000000001030c0                idt_ptr
+                0x00000000001030c8                linear_space_hash
+                0x00000000001030e4                page_count
+                0x0000000000103100                page_block_base
+                0x0000000000109100                handle_ret_addr
+                0x0000000000109120                zone
+                0x00000000001091c0                linear_space_base
+                0x000000000010a1c0                kernel_mem_size
+                0x000000000010a1c4                phypage_base
+                0x000000000010a1e0                free_items
+                0x000000000010b1e0                tss
+                0x000000000010b24c                handle_err_code
+                0x000000000010b250                page_block_hash
+                0x000000000010b26c                gdt_ptr
+                0x000000000010b274                kernel_space
+                0x000000000010b28c                tss_sel
+                0x000000000010b290                used_list
+                0x000000000010b2a0                idt_table
+                0x000000000010baa0                free_list
+                0x000000000010baa8                _end = ABSOLUTE (.)
 
-.bios           0x0000000000000000      0x300
+.bios           0x0000000000000000     0x1300
  *(bios)
- bios           0x0000000000000000      0x300 bin/kernel.o
-                0x0000000000000000                mem_info
-                0x0000000000000200                mem_mcr_number
-                0x0000000000000204                mem_size
-                0x0000000000000208                mem_used_map
-                0x000000000000020c                mem_used_map_max
-                0x0000000000000300                cmos_info
+ bios           0x0000000000000000     0x1300 bin/kernel.o
+                0x0000000000001000                mem_info
+                0x0000000000001200                mem_mcr_number
+                0x0000000000001204                mem_size
+                0x0000000000001208                mem_used_map
+                0x000000000000120c                mem_used_map_max
+                0x0000000000001300                cmos_info
 
 /DISCARD/
  *(.symtab)

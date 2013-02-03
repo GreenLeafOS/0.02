@@ -7,12 +7,12 @@
 
 
 #include "../include/phypage.h"
-
+#include "../include/config.h"
 
 
 /* phypage data */
 struct zone_t zone;
-
+int page_count;
 
 
 /*
@@ -23,21 +23,13 @@ struct zone_t zone;
  */
 void buddy_init()
 {
-	/* 获得内存大小 */
-	for(int i=0;i<mem_mcr_number;i++)
-	{
-		if(mem_info[i].Type == 1)
-			if (mem_info[i].BaseAddrLow + mem_info[i].LenthLow > mem_size)
-				mem_size = mem_info[i].BaseAddrLow + mem_info[i].LenthLow;
-	}
-
-	PhyPage* base = (PhyPage*)0x400000;				/* 起始地址4M以后 */
+	PhyPage* base = (PhyPage*)phypage_base;			/* 页描述符起始地址, */
 
 	zone.page_count = mem_size/PAGE_SIZE;			/* 页数 */
 	zone.page_base = base;							/* 存放页描述符的起始地址 */
 
-	int biggest_count = (zone.page_count/BIGGEST_SIZE)+1;	/* 最大块的个数 */
-	int page_count = (zone.page_count*sizeof(PhyPage))/PAGE_SIZE + 1;	/* 页描述符占用空间 */
+	int biggest_count = (zone.page_count/BIGGEST_SIZE)+1;				/* 最大块的个数 */
+	page_count = (zone.page_count*sizeof(PhyPage))/PAGE_SIZE + 1;		/* 页描述符占用空间 */
 
 	/* 初始化小块 */
 	for(int i=0;i<11;i++)
@@ -49,13 +41,8 @@ void buddy_init()
 	/* 初始化大块 */
 	for (int j=0;j<biggest_count;j++)	/* j小于最大块数 */
 	{
-		PhyPage* block = base + (j * BIGGEST_SIZE);
-
-		block->node.next = NULL;
-		block->node.prev = NULL;
-		block->flags = 0;
+		PhyPage* block = base + j;
 		block->private = BIGGEST_SIZE;
-
 		zone.free_pages += BIGGEST_SIZE;
 		list_addtail(&zone.free_area[10].free_list,&block->node);
 	}

@@ -36,7 +36,7 @@ Bool list_addtail(ListHead *head,ListNode *node);
 ListNode* list_search(ListHead *head,int index);
 
 /* ²åÈë */
-Bool list_insert(ListHead *head,ListNode *node,int index);
+Bool list_insert(ListHead *head,ListNode *node,ListNode *old_node);
 
 /* É¾³ı */
 Bool list_delete(ListHead *head,int index);
